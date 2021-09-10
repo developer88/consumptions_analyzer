@@ -1,13 +1,28 @@
+# Consumption parser
+# by Andrey Eremin
+# 2021. Licence: GPL3
+
+# Usage:
+
+# import consumption_parser
+# gas = consumption_parser.parseConsumption("Gas")
+# print(gas) # Do smth with it
+
+# Config
 import configparser
 
+# Data manipulation
 import pandas as pd
 import requests
 import io
 
+# Dates manipulation
 from datetime import date
 from datetime import datetime as dtObj
 import datetime
 
+# Main entrypoint
+# Get parsed information about consumption data
 def parseConsumption(consumptionType):
     settings = loadSettings()
     df = downloadAndPrepareCsv(settings, consumptionType)
