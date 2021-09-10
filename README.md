@@ -14,6 +14,15 @@ Before use the parser from this repo, one must collect the proper data first. Th
 
 In case you want to get the data from Google Spreadsheets, use [this guide](https://www.labnol.org/internet/direct-links-for-google-drive/28356/#google-sheets---export-links).
 
+❗️ Before start, make sure you remove the following lines
+
+```python
+del df['Дата']
+del df['Пометка']
+```
+
+from `consumption_parser.py` and `Consumption.ipynb`. 
+
 ## Usage
 
 There are 3 main files in this repository:
