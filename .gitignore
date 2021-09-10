@@ -133,3 +133,4 @@ config.ini
 
 # IDE
 .vscode/
+*.db
