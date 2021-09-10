@@ -1,0 +1,6 @@
+[MAIN]
+FileUrl = https://someurlToCSVFile
+TimeColumnName = Time
+ValueColumnName = Value
+TypeColumnName = Type
+daysAgoRange = 365
