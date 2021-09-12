@@ -84,7 +84,7 @@ def prepareDf(df, settings, consumptionType):
     return dfWithoutFirstRow
 
 def format_date(x):
-      return x.strftime("%b %y")
+    return x.strftime("%b %y")
 
 def downloadCsv(settings):
     r = requests.get(settings["csvUrl"])
@@ -99,12 +99,6 @@ def loadSettings():
     config = configparser.ConfigParser()
     config.read('config.ini')
     config.sections()
-
-    typeColumn = config['MAIN']['TypeColumnName']
-    timeColumn = config['MAIN']['TimeColumnName']
-    valueColumn = config['MAIN']['ValueColumnName']
-    daysAgoRange = config['MAIN']['daysAgoRange']
-    csvUrl = config['MAIN']['FileUrl']
 
     return {
         "typeColumn": config['MAIN']['TypeColumnName'],
