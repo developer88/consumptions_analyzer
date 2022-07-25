@@ -1,12 +1,13 @@
 # Consumption parser
 # by Andrey Eremin
-# 2021. Licence: GPL3
+# 2022. Licence: GPL3
 
 # Usage:
 
 # import consumption_parser
 # gas = consumption_parser.parseConsumption("Gas")
 # print(gas) # Do smth with it
+# consumption_parser.drawGraph(gas)
 
 # Config
 import configparser
@@ -23,8 +24,6 @@ import datetime
 
 # Main entrypoint
 # Get parsed information about consumption data
-
-
 def parseConsumption(consumptionType, daysAgoRange):
     settings = loadSettings()
 
@@ -45,6 +44,24 @@ def parseConsumption(consumptionType, daysAgoRange):
             "consumptionType": consumptionType
         }
 
+# Draw the graph
+# Usage: 
+#   gas = consumption_parser.parseConsumption("Gas")
+#   consumption_parser.drawGraph(gas)
+def drawGraph(consumption):
+    # Draw the plot
+    ax = consumption["df"].plot(
+        x = consumption["settings"]["timeColumn"], 
+        y = consumption["settings"]["valueColumn"], 
+        figsize=(15,7), 
+        grid=True,
+        title=consumption["consumptionType"]
+    )
+
+    # Make sure we display all the dates in X
+    ax.set_xticks(consumption["ticks"])
+    ax.set_xticklabels(consumption["tickLabels"]);     
+    
 
 def downloadAndPrepareCsv(settings, consumptionType):
     df = downloadCsv(settings)
