@@ -1,5 +1,5 @@
 [MAIN]
-FileUrl = https://someurlToCSVFile
+FileUrl = https://docs.google.com/spreadsheets/d/FILE_ID/export?format=csv
 TimeColumnName = Time
 ValueColumnName = Value
 TypeColumnName = Type
