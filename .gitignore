@@ -134,3 +134,4 @@ config.ini
 # IDE
 .vscode/
 *.db
+.local/share/jupyter/runtime/notebook_cookie_secret
