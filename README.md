@@ -6,6 +6,18 @@ Simple Jupyter notebook that gets the data from a CSV file, prepared the data ap
 
 Rename `config.ini.example` into `config.ini` and fill in all the fields there.
 
+### Docker setup
+
+* `make`
+* Open in bwroser `http://127.0.0.1:8899/notebooks/Consumption.ipynb`
+
+### Manual setup
+
+```python
+pip install -r ./requirements.txt
+jupyter notebook ./
+```
+
 ### Get the data
 
 Before use the parser from this repo, one must collect the proper data first. This can be done like explained here:
@@ -21,7 +33,7 @@ del df['Дата']
 del df['Пометка']
 ```
 
-from `consumption_parser.py` and `Consumption.ipynb`. 
+from `consumption_parser.py` and `Consumption.ipynb`.
 
 ## Usage
 
@@ -29,7 +41,7 @@ There are 3 main files in this repository:
 
 * `Consumption_with_explanations.ipynb` - explains everything that happens step by step
 * `Consumption.ipynb` - gets the data for 3 main type of resources at home (water, gas, electricity) and draws the plots
-* `consumption_parser.py` - shorter version of what one may find in `Consumption_with_explanations.ipynb` and which is used in `Consumption.ipynb`. 
+* `consumption_parser.py` - shorter version of what one may find in `Consumption_with_explanations.ipynb` and which is used in `Consumption.ipynb`.
 
 ### Usage of `consumption_parser.py`
 
