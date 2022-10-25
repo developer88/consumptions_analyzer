@@ -39,7 +39,7 @@ from `consumption_parser.py` and `Consumption.ipynb`.
 
 There are 3 main files in this repository:
 
-* `Consumption_with_explanations.ipynb` - explains everything that happens step by step
+* `Consumption_with_explanations.ipynb` - (a bit outdated) explains everything that happens step by step
 * `Consumption.ipynb` - gets the data for 3 main type of resources at home (water, gas, electricity) and draws the plots
 * `consumption_parser.py` - shorter version of what one may find in `Consumption_with_explanations.ipynb` and which is used in `Consumption.ipynb`.
 
