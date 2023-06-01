@@ -1,6 +1,6 @@
 # Consumption parser
 # by Andrey Eremin
-# 2022. Licence: GPL3
+# 2022-2023. Licence: GPL3
 
 # Usage:
 
@@ -16,6 +16,7 @@ import configparser
 import pandas as pd
 import requests
 import io
+import matplotlib.pyplot as plt
 
 # Dates manipulation
 from datetime import date
@@ -24,14 +25,11 @@ import datetime
 
 # Main entrypoint
 # Get parsed information about consumption data
-
-
-def parseConsumption(consumptionType, daysAgoRange):
+def parseConsumption(consumptionType):
     settings = loadSettings()
 
-    # Override range in days we look back in time
-    if (int(daysAgoRange) > 0):
-        settings['daysAgoRange'] = int(daysAgoRange)
+    # TODO: Just a hack to override the range. Remove it later
+    settings['daysAgoRange'] = int(9999)
 
     df = downloadAndPrepareCsv(settings, consumptionType)
     if df.empty:
@@ -46,12 +44,23 @@ def parseConsumption(consumptionType, daysAgoRange):
             "consumptionType": consumptionType
         }
 
+def lastDigitOfCurrentYear():
+    # Get the current date
+    now = datetime.datetime.now()
+
+    # Get the last two digits of the year
+    return now.strftime("%y")
+
+
+def filterByYear(consumption, year):
+    df = consumption["df"]
+    return df[df['years'] == str(year)]
+
+
 # Draw the graph
 # Usage:
 #   gas = consumption_parser.parseConsumption("Gas")
 #   consumption_parser.drawGraph(gas)
-
-
 def drawGraph(consumption):
     # Draw the plot
     ax = consumption["df"].plot(
@@ -64,7 +73,73 @@ def drawGraph(consumption):
 
     # Make sure we display all the dates in X
     ax.set_xticks(consumption["ticks"])
-    ax.set_xticklabels(consumption["tickLabels"])
+    ax.set_xticklabels(consumption["tickLabels"], rotation=45)
+
+def compareYears(consumption, year1, year2):
+    year1 = str(year1)
+    year2 = str(year2)
+    df_year1 = filterByYear(consumption, year1)
+    df_year2 = filterByYear(consumption, year2)
+
+    # Plot both years on the same axes
+    fig, ax = plt.subplots(figsize=(15, 7))
+
+    df_year1.plot(
+        x=consumption["settings"]["timeColumn"],
+        y=consumption["settings"]["valueColumn"],
+        ax=ax,
+        grid=True,
+        color='blue',
+        label=f'{year1} Consumption'
+    )
+
+    df_year2.plot(
+        x=consumption["settings"]["timeColumn"],
+        y=consumption["settings"]["valueColumn"],
+        ax=ax,
+        grid=True,
+        color='red',
+        label=f'{year2} Consumption'
+    )
+
+    # Set the title
+    ax.set_title(consumption["consumptionType"])
+
+    # Set the x-axis label
+    ax.set_xlabel("Date")
+
+    # Set the y-axis label
+    ax.set_ylabel("Value")
+
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=45)
+
+    # Display the legend
+    ax.legend()
+
+    plt.show()
+
+def compareYearsAsTable(consumption, year1, year2):
+    year1 = str(year1)
+    year2 = str(year2)
+
+    df_year1 = filterByYear(consumption, year1)
+    df_year2 = filterByYear(consumption, year2)
+
+    # Reset the index
+    df_year1 = df_year1.reset_index()
+    df_year2 = df_year2.reset_index()
+
+    # Rename the columns
+    df_year1.columns = [f'{col}_{year1}' for col in df_year1.columns]
+    df_year2.columns = [f'{col}_{year2}' for col in df_year2.columns]
+
+    # Concatenate the dataframes along columns axis
+    df_years = pd.concat([df_year2, df_year1], axis=1)
+
+    # Display the table
+    print(df_years.to_string())
+
 
 
 # Display the comparison of last years
@@ -109,8 +184,8 @@ def downloadAndPrepareCsv(settings, consumptionType):
 
 
 def prepareDf(df, settings, consumptionType):
-    # print(df)
-    # NB: Feel free to comment these lines out. This was necessary for me because I had that in my CSV file
+    # NB: Feel free to comment these lines out. This was necessary for me because I have that in my CSV file :) and 
+    #   I am too lazy to remove it manually
     del df['Дата']
     del df['Пометка']
 
@@ -129,8 +204,7 @@ def prepareDf(df, settings, consumptionType):
     dateFilterdDf = dataByType[(dataByType[settings["timeColumn"]] >= dt) & (
         dataByType[settings["timeColumn"]] <= dtToday)]
     # format the dates that look good
-    dateFilterdDf[settings["timeColumn"]
-                  ] = dateFilterdDf[settings["timeColumn"]].apply(format_date)
+    dateFilterdDf[settings["timeColumn"]] = dateFilterdDf[settings["timeColumn"]].apply(format_date)
     # Drop unneeded column with type
     del dateFilterdDf[settings["typeColumn"]]
     # Group by month and select min of each group to get 1 record per month to work with
