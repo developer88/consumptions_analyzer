@@ -1,0 +1,12 @@
+# More docs on docker-compose.yml => https://docs.docker.com/compose/compose-file/
+version: "3.7"
+
+services:
+  py_analyzer:
+    build: .
+    container_name: consumption_analyser
+    command: "start.sh jupyter notebook --NotebookApp.token='' ./work/Consumption.ipynb"
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/home/jovyan/work
