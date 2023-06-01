@@ -24,11 +24,13 @@ import datetime
 
 # Main entrypoint
 # Get parsed information about consumption data
+
+
 def parseConsumption(consumptionType, daysAgoRange):
     settings = loadSettings()
 
     # Override range in days we look back in time
-    if(int(daysAgoRange) > 0):
+    if (int(daysAgoRange) > 0):
         settings['daysAgoRange'] = int(daysAgoRange)
 
     df = downloadAndPrepareCsv(settings, consumptionType)
@@ -45,23 +47,58 @@ def parseConsumption(consumptionType, daysAgoRange):
         }
 
 # Draw the graph
-# Usage: 
+# Usage:
 #   gas = consumption_parser.parseConsumption("Gas")
 #   consumption_parser.drawGraph(gas)
+
+
 def drawGraph(consumption):
     # Draw the plot
     ax = consumption["df"].plot(
-        x = consumption["settings"]["timeColumn"], 
-        y = consumption["settings"]["valueColumn"], 
-        figsize=(15,7), 
+        x=consumption["settings"]["timeColumn"],
+        y=consumption["settings"]["valueColumn"],
+        figsize=(15, 7),
         grid=True,
         title=consumption["consumptionType"]
     )
 
     # Make sure we display all the dates in X
     ax.set_xticks(consumption["ticks"])
-    ax.set_xticklabels(consumption["tickLabels"]);     
-    
+    ax.set_xticklabels(consumption["tickLabels"])
+
+
+# Display the comparison of last years
+#   per months as a table
+# Usage:
+#  gas = consumption_parser.parseConsumption("Gas")
+#  consumption_parser.pivotLastYears(gas, printLabel=true)
+def pivotLastYears(consumption, printLabel=False):
+    months_in_order = ['Jan', 'Feb', 'Mar', 'Apr', 'May',
+                       'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    df = consumption['df'].pivot(index='months', columns='years',
+                                 values=consumption["settings"]["valueColumn"])
+    df.reindex(months_in_order)
+
+    if printLabel == True:
+        print(consumption["consumptionType"])
+    return df
+
+# Display the comparison of last years
+#   per months as a graph
+# Usage:
+#  gas = consumption_parser.parseConsumption("Gas")
+#  consumption_parser.drawLastYearsGraph(gas)
+
+
+def drawLastYearsGraph(consumption):
+    df = pivotLastYears(consumption)
+    df.plot(
+        kind='bar',
+        figsize=(17, 10),
+        color=['red', 'green', 'blue'],
+        rot=0,
+        title=consumption["consumptionType"])
+
 
 def downloadAndPrepareCsv(settings, consumptionType):
     df = downloadCsv(settings)
@@ -113,8 +150,21 @@ def prepareDf(df, settings, consumptionType):
     # dfWithoutFirstAndLastRows = diffDfWithoutIndex.drop(diffDfWithoutIndex.tail(1).index) # drop last n rows
     dfWithoutFirstRow = diffDfWithoutIndex.drop(
         diffDfWithoutIndex.head(1).index)  # drop first n rows
+    # add some extra columns for filtering
+    dfWithoutFirstRow['months'] = dfWithoutFirstRow[settings["timeColumn"]].apply(
+        format_simple_months)
+    dfWithoutFirstRow['years'] = dfWithoutFirstRow[settings["timeColumn"]].apply(
+        format_simple_years)
 
     return dfWithoutFirstRow
+
+
+def format_simple_months(x):
+    return x[:len(x)-2]
+
+
+def format_simple_years(x):
+    return x[len(x)-2:]
 
 
 def format_date(x):

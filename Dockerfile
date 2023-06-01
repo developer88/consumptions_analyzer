@@ -1,4 +1,4 @@
-# Use base-notebook to build our image on top of it
+# Use base-notebook to build the image on top of it
 # See https://jupyter-docker-stacks.readthedocs.io/en/latest/using/running.html
 FROM jupyter/base-notebook
 
