@@ -7,7 +7,8 @@
 # import consumption_parser
 # gas = consumption_parser.parseConsumption("Gas")
 # print(gas) # Do smth with it
-# consumption_parser.drawGraph(gas)
+# consumption_parser.compareYears(gas, years = [21,22,23])
+# consumption_parser.compareYearsAsTable(gas, years = [21,22,23])
 
 # Config
 import configparser
@@ -28,9 +29,6 @@ import datetime
 def parseConsumption(consumptionType):
     settings = loadSettings()
 
-    # TODO: Just a hack to override the range. Remove it later
-    settings['daysAgoRange'] = int(9999)
-
     df = downloadAndPrepareCsv(settings, consumptionType)
     if df.empty:
         print("Cannot download CSV file")
@@ -39,8 +37,6 @@ def parseConsumption(consumptionType):
         return {
             "df": df,
             "settings": settings,
-            "ticks": list(range(0, len(df[settings["timeColumn"]]))),
-            "tickLabels": df[settings["timeColumn"]],
             "consumptionType": consumptionType
         }
 
@@ -73,7 +69,7 @@ def compareYears(consumption, years = []):
 
         df_year.plot(
             x='months',
-            y=consumption["settings"]["valueColumn"],
+            y='consumption',
             ax=ax,
             grid=True,
             label=f'20{year}'
@@ -105,7 +101,7 @@ def table_for_year(consumption, year):
     df_year = df_year.reset_index()
 
     # Select only few columns
-    df_year = df_year[[consumption["settings"]["timeColumn"], consumption["settings"]["valueColumn"]]]
+    df_year = df_year[['months', 'consumption']]
 
     # Rename the columns
     df_year.columns = [f'{col}_{year}' for col in df_year.columns]
@@ -135,66 +131,44 @@ def downloadAndPrepareCsv(settings, consumptionType):
 
 
 def prepareDf(df, settings, consumptionType):
-    # NB: Feel free to comment these lines out. This was necessary for me because I have that in my CSV file :) and 
-    #   I am too lazy to remove it manually
-    del df['Дата']
-    del df['Пометка']
+    # Remove unnecessary columns
+    df = df.drop(['Дата', 'Пометка'], axis=1)
 
-    # format the dates
-    df[settings["timeColumn"]] = pd.to_datetime(
-        df[settings["timeColumn"]], dayfirst=True)
-    # filter by consumptionType
-    dataByType = df[df[settings["typeColumn"]] == consumptionType]
-    # filter for daysAgoRange days ago
-    # daysAgo = date.today() - \
-    #     datetime.timedelta(days=int(settings["daysAgoRange"]))
-    # today = date.today()
-    # dt = dtObj(daysAgo.year, daysAgo.month, daysAgo.day)
-    # dtToday = dtObj(today.year, today.month, today.day)
-    # # Filter out for the dates
-    # dateFilterdDf = dataByType[(dataByType[settings["timeColumn"]] >= dt) & (
-    #     dataByType[settings["timeColumn"]] <= dtToday)]
-    dateFilterdDf = dataByType
-    # format the dates that look good
-    dateFilterdDf[settings["timeColumn"]] = dateFilterdDf[settings["timeColumn"]].apply(format_date)
-    # Drop unneeded column with type
-    del dateFilterdDf[settings["typeColumn"]]
-    # Group by month and select min of each group to get 1 record per month to work with
-    # We take min to make sure we take the closest record to the beginning of the month
-    idx = dateFilterdDf.groupby([settings["timeColumn"]], sort=False)[
-        settings["valueColumn"]].transform(min) == dateFilterdDf[settings["valueColumn"]]
-    grouppedDf = dateFilterdDf[idx]
-    # To make sure we have all months sorted correctly, we sort it by valueColumn
-    # We do so as we know that counter value is always a cummulative sum, so it always growths.
-    sortedDf = grouppedDf.sort_values(by=[settings["valueColumn"]])
-    # Because all the values are a cummulative sum, we extract diff between neighbours
-    # and set the index to move sure the .diff will not complain about strings in timeColumn
-    diffDf = sortedDf.set_index(settings["timeColumn"]).diff()
-    # Remove index to make it easier to draw a plot
-    diffDfWithoutIndex = diffDf.reset_index(level=0)
-    # Drop first row that is NaN anyway and so has no any valuable data for us.
-    # dfWithoutFirstAndLastRows = diffDfWithoutIndex.drop(diffDfWithoutIndex.tail(1).index) # drop last n rows
-    dfWithoutFirstRow = diffDfWithoutIndex.drop(
-        diffDfWithoutIndex.head(1).index)  # drop first n rows
-    # add some extra columns for filtering
-    dfWithoutFirstRow['months'] = dfWithoutFirstRow[settings["timeColumn"]].apply(
-        format_simple_months)
-    dfWithoutFirstRow['years'] = dfWithoutFirstRow[settings["timeColumn"]].apply(
-        format_simple_years)
+    # Filter by consumption type
+    df = df[df[settings["typeColumn"]] == consumptionType]
 
-    return dfWithoutFirstRow
+    # Convert the time column to datetime
+    df[settings["timeColumn"]] = pd.to_datetime(df[settings["timeColumn"]], dayfirst=True)
 
+    # Extract the month and year as new columns
+    df['months'] = (df[settings["timeColumn"]] - pd.DateOffset(months=1)).dt.strftime('%b')
+    df['years'] = (df[settings["timeColumn"]] - pd.DateOffset(months=1)).dt.strftime('%y')
 
-def format_simple_months(x):
-    return x[:len(x)-2]
+    df[settings["timeColumn"]] = (df[settings["timeColumn"]] - pd.DateOffset(months=1)).dt.strftime("%b %y")
 
+    # Select the first record of each month
+    is_min_monthly_record = df.groupby([settings["timeColumn"]], sort=False)[settings["valueColumn"]].transform(min) == df[settings["valueColumn"]]
+    df = df[is_min_monthly_record]
 
-def format_simple_years(x):
-    return x[len(x)-2:]
+    # Sort the dataframe by the value column
+    df = df.sort_values(by=[settings["valueColumn"]])
 
+    # Calculate the monthly consumption (difference from the previous month)
+    df['consumption'] = df[settings["valueColumn"]].diff()
 
-def format_date(x):
-    return x.strftime("%b %y")
+    # If the first entry of 'consumption' is NaN (because there's no previous month to subtract from), replace it with the corresponding value
+    df['consumption'] = df['consumption'].fillna(0)
+
+    # Calculate cumulative consumption
+    df['cumulative_consumption'] = df['consumption'].cumsum()
+
+    # Reset the index
+    df = df.reset_index(drop=True)
+
+    # Drop unnecessary columns
+    df = df.drop([settings["timeColumn"], settings["valueColumn"], settings["typeColumn"]], axis=1)
+
+    return df
 
 
 def downloadCsv(settings):
@@ -215,6 +189,5 @@ def loadSettings():
         "typeColumn": config['MAIN']['TypeColumnName'],
         "timeColumn": config['MAIN']['TimeColumnName'],
         "valueColumn": config['MAIN']['ValueColumnName'],
-        "daysAgoRange": config['MAIN']['daysAgoRange'],
         "csvUrl": config['MAIN']['FileUrl']
     }
