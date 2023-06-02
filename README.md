@@ -4,20 +4,17 @@ Simple Jupyter notebook that gets the data from a CSV file, prepared the data ap
 
 ## Setup
 
-
-## Setup
-
 Lima or Docker
 
 ## Usage
 
-### 2. Build and configure the script
+### 1. Build and configure the script
 
 
 1. Rename `config.ini.example` into `config.ini` and fill in all the fields there.
 3. run `make build`
 
-### 4. Run the script and analyse the data
+### 2. Run the script and analyse the data
 
 For that you need to run Jupyter Notebook:
 
@@ -44,10 +41,10 @@ from `consumption_parser.py` and `Consumption.ipynb`.
 
 ## Usage
 
-There are 3 main files in this repository:
+There are 2 main files in this repository:
 
-* `Consumption.ipynb` - gets the data for 3 main type of resources at home (water, gas, electricity) and draws the plots
-* `consumption_parser.py` - shorter version of what one may find in `Consumption_with_explanations.ipynb` and which is used in `Consumption.ipynb`.
+* `Consumption.ipynb` - gets the data for 3 main type of resources at home (water, gas, electricity) and draws the plots.
+* `consumption_parser.py` - notebook with all the graphs and usage examples.
 
 ### Usage of `consumption_parser.py`
 
