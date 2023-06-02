@@ -51,56 +51,33 @@ def lastDigitOfCurrentYear():
     # Get the last two digits of the year
     return now.strftime("%y")
 
+def listOfYearsFor(yearFrom, yearTo):
+    return list(range(int(yearFrom), int(yearTo) + 1))
+
 
 def filterByYear(consumption, year):
     df = consumption["df"]
     return df[df['years'] == str(year)]
 
 
-# Draw the graph
-# Usage:
-#   gas = consumption_parser.parseConsumption("Gas")
-#   consumption_parser.drawGraph(gas)
-def drawGraph(consumption):
-    # Draw the plot
-    ax = consumption["df"].plot(
-        x=consumption["settings"]["timeColumn"],
-        y=consumption["settings"]["valueColumn"],
-        figsize=(15, 7),
-        grid=True,
-        title=consumption["consumptionType"]
-    )
-
-    # Make sure we display all the dates in X
-    ax.set_xticks(consumption["ticks"])
-    ax.set_xticklabels(consumption["tickLabels"], rotation=45)
-
-def compareYears(consumption, year1, year2):
-    year1 = str(year1)
-    year2 = str(year2)
-    df_year1 = filterByYear(consumption, year1)
-    df_year2 = filterByYear(consumption, year2)
+def compareYears(consumption, years = []):
+    years = [str(year) for year in years]
 
     # Plot both years on the same axes
     fig, ax = plt.subplots(figsize=(15, 7))
 
-    df_year1.plot(
-        x=consumption["settings"]["timeColumn"],
-        y=consumption["settings"]["valueColumn"],
-        ax=ax,
-        grid=True,
-        color='blue',
-        label=f'{year1} Consumption'
-    )
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-    df_year2.plot(
-        x=consumption["settings"]["timeColumn"],
-        y=consumption["settings"]["valueColumn"],
-        ax=ax,
-        grid=True,
-        color='red',
-        label=f'{year2} Consumption'
-    )
+    for year in years:
+        df_year = filterByYear(consumption, year)
+
+        df_year.plot(
+            x='months',
+            y=consumption["settings"]["valueColumn"],
+            ax=ax,
+            grid=True,
+            label=f'20{year}'
+        )
 
     # Set the title
     ax.set_title(consumption["consumptionType"])
@@ -113,66 +90,40 @@ def compareYears(consumption, year1, year2):
 
     # Rotate x-axis labels for better readability
     plt.xticks(rotation=45)
+    ax.set_xticks(range(len(months)))
+    ax.set_xticklabels(months, rotation=45)
 
     # Display the legend
     ax.legend()
 
     plt.show()
 
-def compareYearsAsTable(consumption, year1, year2):
-    year1 = str(year1)
-    year2 = str(year2)
-
-    df_year1 = filterByYear(consumption, year1)
-    df_year2 = filterByYear(consumption, year2)
+def table_for_year(consumption, year):
+    df_year = filterByYear(consumption, year)
 
     # Reset the index
-    df_year1 = df_year1.reset_index()
-    df_year2 = df_year2.reset_index()
+    df_year = df_year.reset_index()
+
+    # Select only few columns
+    df_year = df_year[[consumption["settings"]["timeColumn"], consumption["settings"]["valueColumn"]]]
 
     # Rename the columns
-    df_year1.columns = [f'{col}_{year1}' for col in df_year1.columns]
-    df_year2.columns = [f'{col}_{year2}' for col in df_year2.columns]
+    df_year.columns = [f'{col}_{year}' for col in df_year.columns]
 
+    return df_year
+
+def compareYearsAsTable(consumption, years = []):
+    years = [str(year) for year in years]
+
+    years_arr = [table_for_year(consumption, year) for year in years]
+   
     # Concatenate the dataframes along columns axis
-    df_years = pd.concat([df_year2, df_year1], axis=1)
+    df_years = pd.concat(years_arr, axis=1)
 
     # Display the table
+    print(consumption["consumptionType"])
     print(df_years.to_string())
-
-
-
-# Display the comparison of last years
-#   per months as a table
-# Usage:
-#  gas = consumption_parser.parseConsumption("Gas")
-#  consumption_parser.pivotLastYears(gas, printLabel=true)
-def pivotLastYears(consumption, printLabel=False):
-    months_in_order = ['Jan', 'Feb', 'Mar', 'Apr', 'May',
-                       'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    df = consumption['df'].pivot(index='months', columns='years',
-                                 values=consumption["settings"]["valueColumn"])
-    df.reindex(months_in_order)
-
-    if printLabel == True:
-        print(consumption["consumptionType"])
-    return df
-
-# Display the comparison of last years
-#   per months as a graph
-# Usage:
-#  gas = consumption_parser.parseConsumption("Gas")
-#  consumption_parser.drawLastYearsGraph(gas)
-
-
-def drawLastYearsGraph(consumption):
-    df = pivotLastYears(consumption)
-    df.plot(
-        kind='bar',
-        figsize=(17, 10),
-        color=['red', 'green', 'blue'],
-        rot=0,
-        title=consumption["consumptionType"])
+    print('')
 
 
 def downloadAndPrepareCsv(settings, consumptionType):
@@ -195,14 +146,15 @@ def prepareDf(df, settings, consumptionType):
     # filter by consumptionType
     dataByType = df[df[settings["typeColumn"]] == consumptionType]
     # filter for daysAgoRange days ago
-    daysAgo = date.today() - \
-        datetime.timedelta(days=int(settings["daysAgoRange"]))
-    today = date.today()
-    dt = dtObj(daysAgo.year, daysAgo.month, daysAgo.day)
-    dtToday = dtObj(today.year, today.month, today.day)
-    # Filter out for the dates
-    dateFilterdDf = dataByType[(dataByType[settings["timeColumn"]] >= dt) & (
-        dataByType[settings["timeColumn"]] <= dtToday)]
+    # daysAgo = date.today() - \
+    #     datetime.timedelta(days=int(settings["daysAgoRange"]))
+    # today = date.today()
+    # dt = dtObj(daysAgo.year, daysAgo.month, daysAgo.day)
+    # dtToday = dtObj(today.year, today.month, today.day)
+    # # Filter out for the dates
+    # dateFilterdDf = dataByType[(dataByType[settings["timeColumn"]] >= dt) & (
+    #     dataByType[settings["timeColumn"]] <= dtToday)]
+    dateFilterdDf = dataByType
     # format the dates that look good
     dateFilterdDf[settings["timeColumn"]] = dateFilterdDf[settings["timeColumn"]].apply(format_date)
     # Drop unneeded column with type
