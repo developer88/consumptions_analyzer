@@ -67,11 +67,11 @@ def compareYears(consumption, years = []):
     for year in years:
         df_year = filterByYear(consumption, year)
 
-        df_year.plot(
-            x='months',
-            y='consumption',
-            ax=ax,
-            grid=True,
+        # Plot using numeric month positions (1-12) so missing months don't shift the data
+        ax.plot(
+            df_year['month_num'],
+            df_year['consumption'],
+            marker='o',
             label=f'20{year}'
         )
 
@@ -84,10 +84,10 @@ def compareYears(consumption, years = []):
     # Set the y-axis label
     ax.set_ylabel("Value")
 
-    # Rotate x-axis labels for better readability
-    plt.xticks(rotation=45)
-    ax.set_xticks(range(len(months)))
+    # Set x-axis to show all 12 months with proper labels
+    ax.set_xticks(range(1, 13))
     ax.set_xticklabels(months, rotation=45)
+    ax.grid(True)
 
     # Display the legend
     ax.legend()
@@ -143,26 +143,39 @@ def prepareDf(df, settings, consumptionType):
     # Sort by time to ensure chronological order
     df = df.sort_values(by=[settings["timeColumn"]])
 
+    # Store the original timestamp for month gap calculation
+    df['timestamp'] = df[settings["timeColumn"]]
+    
     # Extract the month and year as new columns (for the actual month when data was entered)
     df['months'] = df[settings["timeColumn"]].dt.strftime('%b')
+    df['month_num'] = df[settings["timeColumn"]].dt.month  # Numeric month for plotting
     df['years'] = df[settings["timeColumn"]].dt.strftime('%y')
     df['month_year'] = df[settings["timeColumn"]].dt.strftime("%b %y")
 
     # Select the first (earliest) record of each month
     df = df.groupby(['month_year'], sort=False).first().reset_index()
 
+    # Calculate how many months elapsed between consecutive readings
+    df['prev_timestamp'] = df['timestamp'].shift(1)
+    df['months_elapsed'] = ((df['timestamp'].dt.year - df['prev_timestamp'].dt.year) * 12 + 
+                            (df['timestamp'].dt.month - df['prev_timestamp'].dt.month))
+    
     # Calculate the monthly consumption (difference from the previous month)
-    # Data is already sorted chronologically, so diff() will work correctly
     df['consumption'] = df[settings["valueColumn"]].diff()
+    
+    # If months were skipped, divide consumption by number of months to get average monthly consumption
+    # This gives a more accurate representation than showing all consumption in one month
+    df.loc[df['months_elapsed'] > 1, 'consumption'] = df['consumption'] / df['months_elapsed']
 
-    # If the first entry of 'consumption' is NaN (because there's no previous month to subtract from), replace it with the corresponding value
+    # If the first entry of 'consumption' is NaN (because there's no previous month to subtract from), replace it with 0
     df['consumption'] = df['consumption'].fillna(0)
 
     # Calculate cumulative consumption
     df['cumulative_consumption'] = df['consumption'].cumsum()
 
     # Drop unnecessary columns
-    df = df.drop([settings["timeColumn"], settings["valueColumn"], settings["typeColumn"], 'month_year'], axis=1)
+    df = df.drop([settings["timeColumn"], settings["valueColumn"], settings["typeColumn"], 
+                  'month_year', 'timestamp', 'prev_timestamp', 'months_elapsed'], axis=1)
 
     return df
 
