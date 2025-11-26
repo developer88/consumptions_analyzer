@@ -122,6 +122,70 @@ def compareYearsAsTable(consumption, years = []):
     print('')
 
 
+def yearlyTotalsAsTable(consumption, years = []):
+    """
+    Display yearly consumption totals in a table format.
+    Shows total consumption per year without monthly breakdown.
+    """
+    years = [str(year) for year in years]
+    df = consumption["df"]
+    
+    # Calculate total consumption per year
+    yearly_data = []
+    for year in years:
+        df_year = df[df['years'] == year]
+        total = df_year['consumption'].sum()
+        yearly_data.append({'Year': f'20{year}', 'Total Consumption': total})
+    
+    # Create dataframe and display
+    df_yearly = pd.DataFrame(yearly_data)
+    print(f"\n{consumption['consumptionType']} - Yearly Totals")
+    print(df_yearly.to_string(index=False))
+    print()
+    
+    return df_yearly
+
+
+def compareYearlyTrends(consumption, years = []):
+    """
+    Plot yearly consumption trends as a bar chart.
+    Shows how total annual consumption changes year over year.
+    """
+    years = [str(year) for year in years]
+    df = consumption["df"]
+    
+    # Calculate total consumption per year
+    yearly_totals = []
+    year_labels = []
+    
+    for year in years:
+        df_year = df[df['years'] == year]
+        total = df_year['consumption'].sum()
+        yearly_totals.append(total)
+        year_labels.append(f'20{year}')
+    
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    bars = ax.bar(year_labels, yearly_totals, color='steelblue', alpha=0.7)
+    
+    # Add value labels on top of bars
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{int(height)}',
+                ha='center', va='bottom', fontsize=10)
+    
+    # Set labels and title
+    ax.set_title(f'{consumption["consumptionType"]} - Yearly Consumption Trends', fontsize=14, fontweight='bold')
+    ax.set_xlabel('Year', fontsize=12)
+    ax.set_ylabel('Total Consumption', fontsize=12)
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.show()
+
+
 def downloadAndPrepareCsv(settings, consumptionType):
     df = downloadCsv(settings)
     if not df.empty:
