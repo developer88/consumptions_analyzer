@@ -138,7 +138,7 @@ def prepareDf(df, settings, consumptionType):
     df = df[df[settings["typeColumn"]] == consumptionType]
 
     # Convert the time column to datetime
-    df[settings["timeColumn"]] = pd.to_datetime(df[settings["timeColumn"]], dayfirst=True)
+    df[settings["timeColumn"]] = pd.to_datetime(df[settings["timeColumn"]], format='mixed', dayfirst=True)
 
     # Extract the month and year as new columns
     df['months'] = (df[settings["timeColumn"]] - pd.DateOffset(months=1)).dt.strftime('%b')
