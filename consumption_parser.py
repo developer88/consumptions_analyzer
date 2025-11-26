@@ -140,20 +140,19 @@ def prepareDf(df, settings, consumptionType):
     # Convert the time column to datetime
     df[settings["timeColumn"]] = pd.to_datetime(df[settings["timeColumn"]], format='mixed', dayfirst=True)
 
-    # Extract the month and year as new columns
-    df['months'] = (df[settings["timeColumn"]] - pd.DateOffset(months=1)).dt.strftime('%b')
-    df['years'] = (df[settings["timeColumn"]] - pd.DateOffset(months=1)).dt.strftime('%y')
+    # Sort by time to ensure chronological order
+    df = df.sort_values(by=[settings["timeColumn"]])
 
-    df[settings["timeColumn"]] = (df[settings["timeColumn"]] - pd.DateOffset(months=1)).dt.strftime("%b %y")
+    # Extract the month and year as new columns (for the actual month when data was entered)
+    df['months'] = df[settings["timeColumn"]].dt.strftime('%b')
+    df['years'] = df[settings["timeColumn"]].dt.strftime('%y')
+    df['month_year'] = df[settings["timeColumn"]].dt.strftime("%b %y")
 
-    # Select the first record of each month
-    is_min_monthly_record = df.groupby([settings["timeColumn"]], sort=False)[settings["valueColumn"]].transform(min) == df[settings["valueColumn"]]
-    df = df[is_min_monthly_record]
-
-    # Sort the dataframe by the value column
-    df = df.sort_values(by=[settings["valueColumn"]])
+    # Select the first (earliest) record of each month
+    df = df.groupby(['month_year'], sort=False).first().reset_index()
 
     # Calculate the monthly consumption (difference from the previous month)
+    # Data is already sorted chronologically, so diff() will work correctly
     df['consumption'] = df[settings["valueColumn"]].diff()
 
     # If the first entry of 'consumption' is NaN (because there's no previous month to subtract from), replace it with the corresponding value
@@ -162,11 +161,8 @@ def prepareDf(df, settings, consumptionType):
     # Calculate cumulative consumption
     df['cumulative_consumption'] = df['consumption'].cumsum()
 
-    # Reset the index
-    df = df.reset_index(drop=True)
-
     # Drop unnecessary columns
-    df = df.drop([settings["timeColumn"], settings["valueColumn"], settings["typeColumn"]], axis=1)
+    df = df.drop([settings["timeColumn"], settings["valueColumn"], settings["typeColumn"], 'month_year'], axis=1)
 
     return df
 
