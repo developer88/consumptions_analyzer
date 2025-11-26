@@ -96,17 +96,22 @@ def compareYears(consumption, years = []):
 
 def table_for_year(consumption, year):
     df_year = filterByYear(consumption, year)
-
-    # Reset the index
-    df_year = df_year.reset_index()
-
-    # Select only few columns
-    df_year = df_year[['months', 'consumption']]
-
+    
+    # Create a complete dataframe with all 12 months
+    all_months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    df_complete = pd.DataFrame({'months': all_months})
+    
+    # Merge with actual data, filling missing months with NaN
+    df_merged = df_complete.merge(
+        df_year[['months', 'consumption']], 
+        on='months', 
+        how='left'
+    )
+    
     # Rename the columns
-    df_year.columns = [f'{col}_{year}' for col in df_year.columns]
+    df_merged.columns = [f'{col}_{year}' for col in df_merged.columns]
 
-    return df_year
+    return df_merged
 
 def compareYearsAsTable(consumption, years = []):
     years = [str(year) for year in years]
